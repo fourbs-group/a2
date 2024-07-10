@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "revolt_a2"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "argparse",
  "base64",
