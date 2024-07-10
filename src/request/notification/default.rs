@@ -53,31 +53,31 @@ pub struct DefaultSound<'a> {
 #[serde(rename_all = "kebab-case")]
 pub struct DefaultAlert<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<&'a str>,
+    pub title: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    subtitle: Option<&'a str>,
+    pub subtitle: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    body: Option<&'a str>,
+    pub body: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    title_loc_key: Option<&'a str>,
+    pub title_loc_key: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    title_loc_args: Option<Vec<Cow<'a, str>>>,
+    pub title_loc_args: Option<Vec<Cow<'a, str>>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    action_loc_key: Option<&'a str>,
+    pub action_loc_key: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    loc_key: Option<&'a str>,
+    pub loc_key: Option<&'a str>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    loc_args: Option<Vec<Cow<'a, str>>>,
+    pub loc_args: Option<Vec<Cow<'a, str>>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    launch_image: Option<&'a str>,
+    pub launch_image: Option<&'a str>,
 }
 
 /// A builder to create an APNs payload.
