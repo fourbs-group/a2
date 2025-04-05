@@ -28,3 +28,4 @@
 /examples/*.p12
 
 .direnv
+Cargo.lock

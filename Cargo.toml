@@ -1,5 +1,5 @@
 [package]
-name = "revolt_a2"
+name = "a2"
 version = "0.10.1"
 authors = [
   "Harry Bairstow <harry@walletconnect.com>",
