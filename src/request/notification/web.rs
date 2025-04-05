@@ -77,7 +77,7 @@ impl<'a> WebNotificationBuilder<'a> {
         self
     }
 
-    /// Set the interruption level to active. The system presents the notification 
+    /// Set the interruption level to active. The system presents the notification
     /// immediately, lights up the screen, and can play a sound.
     ///
     /// ```rust
@@ -98,8 +98,8 @@ impl<'a> WebNotificationBuilder<'a> {
         self.interruption_level = Some(crate::request::payload::InterruptionLevel::Active);
         self
     }
-    
-    /// Set the interruption level to critical. The system presents the notification 
+
+    /// Set the interruption level to critical. The system presents the notification
     /// immediately, lights up the screen, and bypasses the mute switch to play a sound.
     ///
     /// ```rust
@@ -120,8 +120,8 @@ impl<'a> WebNotificationBuilder<'a> {
         self.interruption_level = Some(crate::request::payload::InterruptionLevel::Critical);
         self
     }
-    
-    /// Set the interruption level to passive. The system adds the notification to 
+
+    /// Set the interruption level to passive. The system adds the notification to
     /// the notification list without lighting up the screen or playing a sound.
     ///
     /// ```rust
@@ -142,9 +142,9 @@ impl<'a> WebNotificationBuilder<'a> {
         self.interruption_level = Some(crate::request::payload::InterruptionLevel::Passive);
         self
     }
-    
-    /// Set the interruption level to time sensitive. The system presents the notification 
-    /// immediately, lights up the screen, can play a sound, and breaks through system 
+
+    /// Set the interruption level to time sensitive. The system presents the notification
+    /// immediately, lights up the screen, can play a sound, and breaks through system
     /// notification controls.
     ///
     /// ```rust
@@ -165,7 +165,7 @@ impl<'a> WebNotificationBuilder<'a> {
         self.interruption_level = Some(crate::request::payload::InterruptionLevel::TimeSensitive);
         self
     }
-    
+
     /// Set the interruption level directly. Controls how the notification is presented to the user.
     ///
     /// ```rust
@@ -201,6 +201,13 @@ impl<'a> NotificationBuilder<'a> for WebNotificationBuilder<'a> {
                 mutable_content: None,
                 interruption_level: self.interruption_level,
                 url_args: Some(self.url_args),
+                timestamp: None,
+                event: None,
+                content_state: None,
+                attributes_type: None,
+                attributes: None,
+                input_push_channel: None,
+                input_push_token: None,
             },
             device_token,
             options,
