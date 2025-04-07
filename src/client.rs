@@ -14,7 +14,7 @@ use hyper::body::Bytes;
 use hyper::{self, StatusCode};
 
 #[cfg(feature = "openssl")]
-use openssl::{pkcs12::Pkcs12, x509::X509};
+use openssl::pkcs12::Pkcs12;
 
 #[cfg(any(feature = "rustls", feature = "ring"))]
 use {
@@ -26,15 +26,15 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client as HttpClient;
 use hyper_util::rt::{TokioExecutor, TokioTimer};
 use std::convert::Infallible;
+use std::fmt;
 use std::io::Read;
 use std::time::Duration;
-use std::{fmt, io};
 
 const DEFAULT_REQUEST_TIMEOUT_SECS: u64 = 20;
 
 #[cfg(any(feature = "rustls", feature = "ring"))]
-type HyperConnector = HttpsConnector<HttpConnector>;
-#[cfg(feature = "openssl")]
+type HyperConnector = hyper_rustls::HttpsConnector<HttpConnector>;
+#[cfg(all(feature = "openssl", not(any(feature = "rustls", feature = "ring"))))]
 type HyperConnector = hyper_util::client::legacy::connect::HttpConnector;
 
 /// The APNs service endpoint to connect.
@@ -210,11 +210,19 @@ impl Client {
         let mut cert_der: Vec<u8> = Vec::new();
         certificate.read_to_end(&mut cert_der)?;
 
-        let pkcs = openssl::pkcs12::Pkcs12::from_der(&cert_der)?.parse2(password)?;
-        let Some((cert, pkey)) = pkcs.cert.zip(pkcs.pkey) else {
+        let pkcs = Pkcs12::from_der(&cert_der)?;
+        let parsed = pkcs.parse2(password)?;
+
+        // Extract cert and key from parsed result
+        let Some((cert, pkey)) = parsed.cert.zip(parsed.pkey) else {
             return Err(Error::InvalidCertificate);
         };
-        let connector = client_cert_connector(&cert.to_pem()?, &pkey.private_key_to_pem_pkcs8()?)?;
+
+        // Extract PEM data for our client_cert_connector
+        let cert_pem = cert.to_pem()?;
+        let key_pem = pkey.private_key_to_pem_pkcs8()?;
+
+        let connector = client_cert_connector(&cert_pem, &key_pem)?;
 
         Ok(Self::builder().connector(connector).config(config).build())
     }
@@ -336,7 +344,7 @@ fn default_connector() -> HyperConnector {
         .build()
 }
 
-#[cfg(feature = "openssl")]
+#[cfg(all(feature = "openssl", not(any(feature = "rustls", feature = "ring"))))]
 fn default_connector() -> HyperConnector {
     let mut http = HttpConnector::new();
     http.enforce_http(false); // Allow HTTPS URLs
@@ -345,7 +353,7 @@ fn default_connector() -> HyperConnector {
 
 #[cfg(any(feature = "rustls", feature = "ring"))]
 fn client_cert_connector(mut cert_pem: &[u8], mut key_pem: &[u8]) -> Result<HyperConnector, Error> {
-    let private_key_error = || io::Error::new(io::ErrorKind::InvalidData, "private key");
+    let private_key_error = || std::io::Error::new(std::io::ErrorKind::InvalidData, "private key");
 
     let key = rustls_pemfile::pkcs8_private_keys(&mut key_pem)
         .next()
@@ -366,10 +374,9 @@ fn client_cert_connector(mut cert_pem: &[u8], mut key_pem: &[u8]) -> Result<Hype
         .build())
 }
 
-#[cfg(feature = "openssl")]
+#[cfg(all(feature = "openssl", not(any(feature = "rustls", feature = "ring"))))]
 fn client_cert_connector(_cert_pem: &[u8], _key_pem: &[u8]) -> Result<HyperConnector, Error> {
-    // For now, openssl implementation will use the default connector
-    // We can implement proper OpenSSL cert handling in the future
+    // Just use the default connector which now allows HTTPS URLs
     Ok(default_connector())
 }
 

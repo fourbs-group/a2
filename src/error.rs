@@ -3,6 +3,9 @@ use crate::{response::Response, signer::SignerError};
 use std::io;
 use thiserror::Error;
 
+#[cfg(feature = "openssl")]
+use openssl::error::ErrorStack;
+
 #[derive(Debug, Error)]
 pub enum Error {
     /// User request or Apple response JSON data was faulty.
@@ -41,6 +44,10 @@ pub enum Error {
     #[error("Error in reading a certificate file: {0}")]
     ReadError(#[from] io::Error),
 
+    /// Invalid certificate or key format
+    #[error("Invalid certificate or key format")]
+    InvalidCertificate,
+
     #[cfg(any(feature = "rustls", feature = "ring"))]
     #[error("Error building TLS config: {0}")]
     Tls(#[from] rustls::Error),
@@ -58,13 +65,8 @@ pub enum Error {
     #[error("Unexpected private key: {0}")]
     UnexpectedKey(#[from] ring::error::KeyRejected),
 
-    #[error("Invalid certificate")]
-    InvalidCertificate,
-}
-
-#[cfg(feature = "openssl")]
-impl From<openssl::error::ErrorStack> for Error {
-    fn from(e: openssl::error::ErrorStack) -> Self {
-        Self::SignerError(SignerError::OpenSSL(e))
-    }
+    /// OpenSSL related errors
+    #[cfg(feature = "openssl")]
+    #[error("OpenSSL error: {0}")]
+    OpenSslError(#[from] ErrorStack),
 }
