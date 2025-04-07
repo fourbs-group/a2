@@ -338,7 +338,9 @@ fn default_connector() -> HyperConnector {
 
 #[cfg(feature = "openssl")]
 fn default_connector() -> HyperConnector {
-    HttpConnector::new()
+    let mut http = HttpConnector::new();
+    http.enforce_http(false); // Allow HTTPS URLs
+    http
 }
 
 #[cfg(any(feature = "rustls", feature = "ring"))]
