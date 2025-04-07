@@ -202,6 +202,7 @@ impl<'a> NotificationBuilder<'a> for WebNotificationBuilder<'a> {
                 interruption_level: self.interruption_level,
                 url_args: Some(self.url_args),
                 timestamp: None,
+                dismissal_date: None,
                 event: None,
                 content_state: None,
                 attributes_type: None,

@@ -19,7 +19,8 @@ rust-version = "1.60" # set the minimum rust version we can work with.
 [features]
 default = ["openssl"]
 tracing = ["dep:tracing"]
-ring = ["dep:ring", "pem"]
+ring = ["dep:ring", "pem", "dep:rustls", "dep:rustls-pemfile", "dep:hyper-rustls"]
+rustls = ["dep:rustls", "dep:rustls-pemfile", "dep:hyper-rustls", "dep:ring", "pem"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -47,9 +48,9 @@ hyper-rustls = { version = "0.26.0", default-features = false, features = [
   "http2",
   "webpki-roots",
   "ring",
-] }
-rustls-pemfile = "2.1.1"
-rustls = "0.22.4"
+], optional = true }
+rustls-pemfile = { version = "2.1.1", optional = true }
+rustls = { version = "0.22.4", optional = true }
 parking_lot = "0.12"
 tokio = { version = "1", features = ["time"] }
 

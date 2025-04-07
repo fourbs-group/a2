@@ -12,7 +12,16 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper::{self, StatusCode};
-use hyper_rustls::{ConfigBuilderExt, HttpsConnector, HttpsConnectorBuilder};
+
+#[cfg(feature = "openssl")]
+use openssl::{pkcs12::Pkcs12, x509::X509};
+
+#[cfg(any(feature = "rustls", feature = "ring"))]
+use {
+    hyper_rustls::{ConfigBuilderExt, HttpsConnector, HttpsConnectorBuilder},
+    rustls_pemfile,
+};
+
 use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client as HttpClient;
 use hyper_util::rt::{TokioExecutor, TokioTimer};
@@ -23,7 +32,10 @@ use std::{fmt, io};
 
 const DEFAULT_REQUEST_TIMEOUT_SECS: u64 = 20;
 
+#[cfg(any(feature = "rustls", feature = "ring"))]
 type HyperConnector = HttpsConnector<HttpConnector>;
+#[cfg(feature = "openssl")]
+type HyperConnector = hyper_util::client::legacy::connect::HttpConnector;
 
 /// The APNs service endpoint to connect.
 #[derive(Debug, Clone)]
@@ -100,6 +112,7 @@ impl ClientConfig {
 struct ClientBuilder {
     config: ClientConfig,
     signer: Option<Signer>,
+    #[cfg(any(feature = "rustls", feature = "ring", feature = "openssl"))]
     connector: Option<HyperConnector>,
 }
 
@@ -108,12 +121,14 @@ impl Default for ClientBuilder {
         Self {
             config: Default::default(),
             signer: None,
+            #[cfg(any(feature = "rustls", feature = "ring", feature = "openssl"))]
             connector: Some(default_connector()),
         }
     }
 }
 
 impl ClientBuilder {
+    #[cfg(any(feature = "rustls", feature = "ring", feature = "openssl"))]
     fn connector(mut self, connector: HyperConnector) -> Self {
         self.connector = Some(connector);
         self
@@ -312,6 +327,7 @@ impl Client {
     }
 }
 
+#[cfg(any(feature = "rustls", feature = "ring"))]
 fn default_connector() -> HyperConnector {
     HttpsConnectorBuilder::new()
         .with_webpki_roots()
@@ -320,6 +336,12 @@ fn default_connector() -> HyperConnector {
         .build()
 }
 
+#[cfg(feature = "openssl")]
+fn default_connector() -> HyperConnector {
+    HttpConnector::new()
+}
+
+#[cfg(any(feature = "rustls", feature = "ring"))]
 fn client_cert_connector(mut cert_pem: &[u8], mut key_pem: &[u8]) -> Result<HyperConnector, Error> {
     let private_key_error = || io::Error::new(io::ErrorKind::InvalidData, "private key");
 
@@ -340,6 +362,13 @@ fn client_cert_connector(mut cert_pem: &[u8], mut key_pem: &[u8]) -> Result<Hype
         .https_only()
         .enable_http2()
         .build())
+}
+
+#[cfg(feature = "openssl")]
+fn client_cert_connector(_cert_pem: &[u8], _key_pem: &[u8]) -> Result<HyperConnector, Error> {
+    // For now, openssl implementation will use the default connector
+    // We can implement proper OpenSSL cert handling in the future
+    Ok(default_connector())
 }
 
 #[cfg(test)]

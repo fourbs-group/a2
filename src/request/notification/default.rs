@@ -121,6 +121,7 @@ pub struct DefaultNotificationBuilder<'a> {
     interruption_level: Option<crate::request::payload::InterruptionLevel>,
     has_edited_alert: bool,
     timestamp: Option<u64>,
+    dismissal_date: Option<u64>,
     event: Option<&'a str>,
     content_state: Option<serde_json::Value>,
     attributes_type: Option<&'a str>,
@@ -173,6 +174,7 @@ impl<'a> DefaultNotificationBuilder<'a> {
             interruption_level: None,
             has_edited_alert: false,
             timestamp: None,
+            dismissal_date: None,
             event: None,
             content_state: None,
             attributes_type: None,
@@ -694,6 +696,27 @@ impl<'a> DefaultNotificationBuilder<'a> {
         self
     }
 
+    /// Set the dismissal date for a Live Activity
+    ///
+    /// ```rust
+    /// # use a2::request::notification::{DefaultNotificationBuilder, NotificationBuilder};
+    /// # use a2::request::payload::PayloadLike;
+    /// # fn main() {
+    /// let payload = DefaultNotificationBuilder::new()
+    ///     .set_dismissal_date(1234)
+    ///     .build("token", Default::default());
+    ///
+    /// assert_eq!(
+    ///     "{\"aps\":{\"dismissal-date\":1234,\"mutable-content\":0}}",
+    ///     &payload.to_json_string().unwrap()
+    /// );
+    /// # }
+    /// ```
+    pub fn set_dismissal_date(mut self, dismissal_date: u64) -> Self {
+        self.dismissal_date = Some(dismissal_date);
+        self
+    }
+
     /// Set the event for a Live Activity. Use "start" to begin a Live Activity.
     ///
     /// ```rust
@@ -846,6 +869,7 @@ impl<'a> NotificationBuilder<'a> for DefaultNotificationBuilder<'a> {
                 interruption_level: self.interruption_level,
                 url_args: None,
                 timestamp: self.timestamp,
+                dismissal_date: self.dismissal_date,
                 event: self.event,
                 content_state: self.content_state,
                 attributes_type: self.attributes_type,

@@ -203,6 +203,10 @@ pub struct APS<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<u64>,
 
+    /// Live Activity: Dismissal date for the Live Activity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dismissal_date: Option<u64>,
+
     /// Live Activity: Event type ("start" to begin a Live Activity).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event: Option<&'a str>,
@@ -320,6 +324,7 @@ mod tests {
 
         let builder = DefaultNotificationBuilder::new()
             .set_timestamp(1234)
+            .set_dismissal_date(1234)
             .set_event("start")
             .set_content_state(&content_state)
             .set_attributes_type("AdventureAttributes")

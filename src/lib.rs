@@ -108,8 +108,8 @@
 //! ```
 #![warn(clippy::unwrap_used)]
 
-#[cfg(not(any(feature = "openssl", feature = "ring")))]
-compile_error!("either feature \"openssl\" or feature \"ring\" has to be enabled");
+#[cfg(not(any(feature = "openssl", feature = "ring", feature = "rustls")))]
+compile_error!("either feature \"openssl\", \"ring\", or \"rustls\" has to be enabled");
 
 #[macro_use]
 extern crate serde;

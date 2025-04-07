@@ -23,8 +23,10 @@ Needs a Tokio executor version 1.0 or later and Rust compiler version 1.60.0 or 
 * Supports `.p8` private keys to connect using authentication tokens.
 * If using authentication tokens, handles signature renewing for Apple's guidelines
   and caching for maximum performance.
-* Cryptography primitives are provided either by openssl or
-  [ring](https://github.com/briansmith/ring).
+* Cryptography primitives are provided by one of the following backends (configurable via feature flags):
+  - `openssl` (default): Uses the OpenSSL library
+  - `ring`: Uses the [ring](https://github.com/briansmith/ring) library
+  - `rustls`: Uses the [rustls](https://github.com/rustls/rustls) TLS implementation with ring for cryptographic operations
 
 ## Examples
 

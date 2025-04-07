@@ -41,6 +41,7 @@ pub enum Error {
     #[error("Error in reading a certificate file: {0}")]
     ReadError(#[from] io::Error),
 
+    #[cfg(any(feature = "rustls", feature = "ring"))]
     #[error("Error building TLS config: {0}")]
     Tls(#[from] rustls::Error),
 

@@ -15,6 +15,8 @@ use openssl::{
 #[cfg(all(not(feature = "openssl"), feature = "ring"))]
 use ring::{rand, signature};
 use thiserror::Error;
+#[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+use {rustls::pki_types::PrivateKeyDer, rustls_pemfile::pkcs8_private_keys};
 
 #[derive(Debug, Clone)]
 struct Signature {
@@ -59,6 +61,8 @@ enum Secret {
         signing_key: signature::EcdsaKeyPair,
         rng: rand::SystemRandom,
     },
+    #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+    Rustls(PrivateKeyDer<'static>),
 }
 
 impl Secret {
@@ -78,19 +82,40 @@ impl Secret {
         Ok(Self::Ring { signing_key, rng })
     }
 
+    #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+    fn new_rustls(pem_key: &[u8]) -> Result<Self, Error> {
+        let mut cursor = std::io::Cursor::new(pem_key);
+        let keys: Vec<_> = pkcs8_private_keys(&mut cursor).collect();
+
+        let der = keys
+            .into_iter()
+            .next()
+            .ok_or(SignerError::RustlsPem)?
+            .map_err(|_| SignerError::RustlsPem)?;
+
+        Ok(Self::Rustls(PrivateKeyDer::Pkcs8(der)))
+    }
+
     fn from_pem<R>(mut pk_pem: R) -> Result<Secret, Error>
     where
         R: Read,
     {
         let mut pem_key: Vec<u8> = Vec::new();
         pk_pem.read_to_end(&mut pem_key)?;
+
         #[cfg(feature = "openssl")]
         {
-            Self::new_openssl(&pem_key)
+            return Self::new_openssl(&pem_key);
         }
+
         #[cfg(all(not(feature = "openssl"), feature = "ring"))]
         {
-            Self::new_ring(&pem_key)
+            return Self::new_ring(&pem_key);
+        }
+
+        #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+        {
+            return Self::new_rustls(&pem_key);
         }
     }
 }
@@ -221,6 +246,25 @@ impl Secret {
                 let signature_payload = signing_key.sign(rng, signing_input.as_bytes())?;
                 Ok(signature_payload.as_ref().to_vec())
             }
+            #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+            Secret::Rustls(private_key) => {
+                use ring::signature::{EcdsaKeyPair, ECDSA_P256_SHA256_FIXED_SIGNING};
+
+                let pkcs8_bytes = match private_key {
+                    PrivateKeyDer::Pkcs8(pkcs8) => pkcs8.secret_pkcs8_der().to_vec(),
+                    _ => return Err(SignerError::RustlsSign),
+                };
+
+                let rng = ring::rand::SystemRandom::new();
+                let key_pair = EcdsaKeyPair::from_pkcs8(&ECDSA_P256_SHA256_FIXED_SIGNING, &pkcs8_bytes, &rng)
+                    .map_err(|_| SignerError::RustlsSign)?;
+
+                let signature = key_pair
+                    .sign(&rng, signing_input.as_bytes())
+                    .map_err(|_| SignerError::RustlsSign)?;
+
+                Ok(signature.as_ref().to_vec())
+            }
         }
     }
 }
@@ -237,6 +281,12 @@ pub enum SignerError {
     #[cfg(all(not(feature = "openssl"), feature = "ring"))]
     #[error(transparent)]
     Ring(#[from] ring::error::Unspecified),
+    #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+    #[error("Failed to parse PEM file")]
+    RustlsPem,
+    #[cfg(all(not(feature = "openssl"), not(feature = "ring"), feature = "rustls"))]
+    #[error("Failed to sign with rustls")]
+    RustlsSign,
 }
 
 fn get_time() -> i64 {
