@@ -313,6 +313,10 @@ impl Client {
 }
 
 fn default_connector() -> HyperConnector {
+    #[cfg(feature = "ring")]
+    {
+        let _ = ::rustls::crypto::ring::default_provider().install_default();
+    }
     HttpsConnectorBuilder::new()
         .with_webpki_roots()
         .https_only()

@@ -17,7 +17,7 @@ edition = "2021"
 rust-version = "1.60" # set the minimum rust version we can work with.
 
 [features]
-default = ["openssl"]
+default = ["ring"]
 tracing = ["dep:tracing"]
 ring = ["dep:ring", "pem"]
 
