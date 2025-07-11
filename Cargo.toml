@@ -52,6 +52,7 @@ rustls-pemfile = "2.1.1"
 rustls = "0.23"
 parking_lot = "0.12"
 tokio = { version = "1", features = ["time"] }
+p12-keystore = "0.2.0"
 
 [dev-dependencies]
 argparse = "0.2"

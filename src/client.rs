@@ -182,25 +182,18 @@ impl Client {
         ClientBuilder::default()
     }
 
-    /// Create a connection to APNs using the provider client certificate which
-    /// you obtain from your [Apple developer
-    /// account](https://developer.apple.com/account/).
-    ///
-    /// Only works with the `openssl` feature.
-    #[cfg(feature = "openssl")]
+    /// Create a connection to APNs using a PKCS#12 provider certificate (PFX/.p12).
     pub fn certificate<R>(certificate: &mut R, password: &str, config: ClientConfig) -> Result<Client, Error>
     where
         R: Read,
     {
-        let mut cert_der: Vec<u8> = Vec::new();
-        certificate.read_to_end(&mut cert_der)?;
-
-        let pkcs = openssl::pkcs12::Pkcs12::from_der(&cert_der)?.parse2(password)?;
-        let Some((cert, pkey)) = pkcs.cert.zip(pkcs.pkey) else {
-            return Err(Error::InvalidCertificate);
-        };
-        let connector = client_cert_connector(&cert.to_pem()?, &pkey.private_key_to_pem_pkcs8()?)?;
-
+        // Load all bytes from the certificate reader
+        let mut data = Vec::new();
+        certificate.read_to_end(&mut data)?;
+        // Parse the PKCS#12 archive into PEM-encoded certificate chain and private key
+        let (cert_pem, key_pem) = crate::pkcs12::parse_pkcs12(&data, password)?;
+        // Build a TLS connector using the parsed certificate and key PEM blocks
+        let connector = client_cert_connector(&cert_pem, &key_pem)?;
         Ok(Self::builder().connector(connector).config(config).build())
     }
 
