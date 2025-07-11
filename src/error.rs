@@ -60,10 +60,3 @@ pub enum Error {
     #[error("Invalid certificate")]
     InvalidCertificate,
 }
-
-#[cfg(feature = "openssl")]
-impl From<openssl::error::ErrorStack> for Error {
-    fn from(e: openssl::error::ErrorStack) -> Self {
-        Self::SignerError(SignerError::OpenSSL(e))
-    }
-}
