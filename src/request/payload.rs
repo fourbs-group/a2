@@ -186,11 +186,6 @@ pub struct APS<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub category: Option<&'a str>,
 
-    /// If set to one, the app can change the notification content before
-    /// displaying it to the user.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mutable_content: Option<u8>,
-
     /// Interruption level for the notification. Controls how the notification
     /// is presented to the user and what system settings it can bypass.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -230,6 +225,8 @@ pub struct APS<'a> {
     /// Live Activity: Set to 1 to request a new push token for iOS 18+ token-based updates.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input_push_token: Option<u8>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mutable_content: Option<u8>,
 }
 
 /// Different notification content types.

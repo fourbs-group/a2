@@ -5,14 +5,6 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::prelude::*;
-#[cfg(feature = "openssl")]
-use openssl::{
-    ec::EcKey,
-    hash::MessageDigest,
-    pkey::{PKey, Private},
-    sign::Signer as SslSigner,
-};
-#[cfg(all(not(feature = "openssl"), feature = "ring"))]
 use ring::{rand, signature};
 use thiserror::Error;
 
@@ -52,9 +44,6 @@ struct JwtPayload<'a> {
 
 #[derive(Debug)]
 enum Secret {
-    #[cfg(feature = "openssl")]
-    OpenSSL(PKey<Private>),
-    #[cfg(all(not(feature = "openssl"), feature = "ring"))]
     Ring {
         signing_key: signature::EcdsaKeyPair,
         rng: rand::SystemRandom,
@@ -62,14 +51,6 @@ enum Secret {
 }
 
 impl Secret {
-    #[cfg(feature = "openssl")]
-    fn new_openssl(pem_key: &[u8]) -> Result<Self, Error> {
-        let ec_key = EcKey::private_key_from_pem(pem_key)?;
-        let secret = PKey::from_ec_key(ec_key)?;
-        Ok(Self::OpenSSL(secret))
-    }
-
-    #[cfg(all(not(feature = "openssl"), feature = "ring"))]
     fn new_ring(pem_key: &[u8]) -> Result<Self, Error> {
         let der = pem::parse(pem_key).map_err(SignerError::Pem)?;
         let alg = &signature::ECDSA_P256_SHA256_FIXED_SIGNING;
@@ -82,16 +63,9 @@ impl Secret {
     where
         R: Read,
     {
-        let mut pem_key: Vec<u8> = Vec::new();
+        let mut pem_key = Vec::new();
         pk_pem.read_to_end(&mut pem_key)?;
-        #[cfg(feature = "openssl")]
-        {
-            Self::new_openssl(&pem_key)
-        }
-        #[cfg(all(not(feature = "openssl"), feature = "ring"))]
-        {
-            Self::new_ring(&pem_key)
-        }
+        Self::new_ring(&pem_key)
     }
 }
 
@@ -208,19 +182,11 @@ impl Signer {
 
 impl Secret {
     fn sign(&self, signing_input: &String) -> Result<Vec<u8>, SignerError> {
-        match self {
-            #[cfg(feature = "openssl")]
-            Secret::OpenSSL(key) => {
-                let mut signer = SslSigner::new(MessageDigest::sha256(), key)?;
-                signer.update(signing_input.as_bytes())?;
-                let signature_payload = signer.sign_to_vec()?;
-                Ok(signature_payload)
-            }
-            #[cfg(all(not(feature = "openssl"), feature = "ring"))]
-            Secret::Ring { signing_key, rng } => {
-                let signature_payload = signing_key.sign(rng, signing_input.as_bytes())?;
-                Ok(signature_payload.as_ref().to_vec())
-            }
+        if let Secret::Ring { signing_key, rng } = self {
+            let sig = signing_key.sign(rng, signing_input.as_bytes())?;
+            Ok(sig.as_ref().to_vec())
+        } else {
+            unreachable!()
         }
     }
 }
