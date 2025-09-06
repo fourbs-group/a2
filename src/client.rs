@@ -242,9 +242,16 @@ impl Client {
             .and_then(|s| s.to_str().ok())
             .map(String::from);
 
+        let apns_unique_id = response
+            .headers()
+            .get("apns-unique-id")
+            .and_then(|s| s.to_str().ok())
+            .map(String::from);
+
         match response.status() {
             StatusCode::OK => Ok(Response {
                 apns_id,
+                apns_unique_id,
                 error: None,
                 code: response.status().as_u16(),
             }),
@@ -253,6 +260,7 @@ impl Client {
 
                 Err(ResponseError(Response {
                     apns_id,
+                    apns_unique_id,
                     error: serde_json::from_slice(&body.to_bytes()).ok(),
                     code: status.as_u16(),
                 }))
